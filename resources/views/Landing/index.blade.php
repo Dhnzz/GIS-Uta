@@ -30,15 +30,14 @@
     <!-- Template Main CSS File -->
     <link href="{{ asset('assets') }}/css/style.css" rel="stylesheet">
 
-    {{-- DATA TABLE --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css" />
-
     {{-- LEAFLET --}}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css'
         rel='stylesheet' />
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
 
     <!-- =======================================================
   * Template Name: Arsha
@@ -118,32 +117,21 @@
                     <h2>Data Tabular</h2>
                 </div>
 
+                <!-- Di dalam bagian tabel di bawah peta -->
                 <table class="table table-striped" id="myTable">
                     <thead>
                         <tr>
                             <th scope="col">No.</th>
-                            <th scope="col">Nama Kelompok</th>
-                            <th scope="col">Nama Ketua</th>
-                            <th scope="col">Kontak</th>
-                            <th scope="col">Kecamatan</th>
-                            <th scope="col">Kelurahan</th>
-                            <th scope="col">LBS (Ha)</th>
-                            <th scope="col">IP</th>
-                            <th scope="col">Pola Tanam</th>
+                            <th scope="col">Nama Objek</th>
+                            <th scope="col">Wilayah Administrasi</th>
+                            <th scope="col">Keterangan</th>
+                            <th scope="col">Sumber Data</th>
+                            <th scope="col">Kabupaten</th>
+                            <!-- Tambahkan header lain jika perlu -->
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>Kelompok Dummy</td>
-                            <td>Ketua Dummy</td>
-                            <td>Kontak Dummy</td>
-                            <td>Kecamatan Dummy</td>
-                            <td>Kelurahan Dummy</td>
-                            <td>LBS Dummy</td>
-                            <td>IP Dummy</td>
-                            <td>Pola Tanam Dummy</td>
-                        </tr>
+                    <tbody id="tableBody">
+                        <!-- Isi tabel akan diisi oleh dataHandler.js -->
                     </tbody>
                 </table>
 
@@ -185,13 +173,19 @@
     <!-- Template Main JS File -->
     <script src="{{ asset('assets') }}/js/main.js"></script>
 
-    {{-- DATA TABLE --}}
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap5.js"></script>
+    <script src="{{ asset('assets/js/dataHandler.js') }}"></script>
     <script>
-        new DataTable('#myTable');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pastikan dataHandler.js telah selesai memuat data
+            loadDataToTable().then(function() {
+                // Inisialisasi DataTable setelah data sepenuhnya dimuat
+                $('#myTable').DataTable({
+                    "language": {
+                        "url": "//cdn.datatables.net/plug-ins/1.11.3/i18n/id.json"
+                    }
+                });
+            });
+        });
     </script>
 
     {{-- LEAFLET --}}
@@ -200,14 +194,51 @@
     <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js'></script>
 
     <script>
+        // Inisialisasi peta
         var map = L.map('maps').setView([0.4949179,121.8850092], 12);
         map.addControl(new L.Control.Fullscreen());
 
-        googleTerrain = L.tileLayer('http://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}', {
+        // Menambahkan layer peta
+        var googleTerrain = L.tileLayer('http://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         }).addTo(map);
+
+        // Fungsi untuk menambahkan data GeoJSON ke peta dengan styling
+        function addGeoJsonData(geoJsonData) {
+            L.geoJSON(geoJsonData, {
+                style: function (feature) {
+                    return {
+                        color: 'red', // Warna garis
+                        weight: 5 // Ketebalan garis
+                    };
+                },
+                onEachFeature: function (feature, layer) {
+                    if (feature.properties && feature.properties.NAMOBJ) {
+                        layer.bindPopup(feature.properties.NAMOBJ);
+                    }
+                }
+            }).addTo(map);
+        }
+
+        // Memuat data GeoJSON dari file lokal
+        fetch('assets/IRIGASI_POHUWATO.json')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(json) {
+                addGeoJsonData(json);
+            })
+            .catch(function(err) {
+                console.error('Error memuat data GeoJSON: ' + err);
+            });
     </script>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins and DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
 
 </body>
 
