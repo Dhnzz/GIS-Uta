@@ -204,19 +204,33 @@
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         }).addTo(map);
 
+        map.createPane('panePolygons');
+        map.getPane('panePolygons').style.zIndex = 400;
         // Fungsi untuk menambahkan data GeoJSON ke peta dengan styling
-        function addGeoJsonData(geoJsonData) {
+        function addGeoJsonData(geoJsonData, datasetName) {
             L.geoJSON(geoJsonData, {
-                style: function (feature) {
-                    return {
-                        color: 'red', // Warna garis
-                        weight: 5 // Ketebalan garis
-                    };
+                pane: datasetName === "Pohuwato" ? "panePolygons" : "overlayPane",
+                style: function (feature){
+                    if(datasetName === "Irigasi"){
+                        return {
+                            color : 'blue',
+                            weight: 3
+                        }
+                    }else if(datasetName === "Pohuwato"){
+                        return {
+                            color : 'black',
+                            weight: 2,
+                            fillColor: 'green',
+                            fillOpacity: 0.5
+                        }
+                    }
                 },
                 onEachFeature: function (feature, layer) {
+                    var popupContent = "Dataset: " + datasetName + "<br>";
                     if (feature.properties && feature.properties.NAMOBJ) {
-                        layer.bindPopup(feature.properties.NAMOBJ);
+                        popupContent += "Name: " + feature.properties.NAMOBJ;
                     }
+                    layer.bindPopup(popupContent);
                 }
             }).addTo(map);
         }
@@ -227,7 +241,19 @@
                 return response.json();
             })
             .then(function(json) {
-                addGeoJsonData(json);
+                addGeoJsonData(json, "Irigasi");
+            })
+            .catch(function(err) {
+                console.error('Error memuat data GeoJSON: ' + err);
+            });
+
+        // Memuat data GeoJSON dari file lokal
+        fetch('assets/POHUWATO.json')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(json) {
+                addGeoJsonData(json, "Pohuwato");
             })
             .catch(function(err) {
                 console.error('Error memuat data GeoJSON: ' + err);
